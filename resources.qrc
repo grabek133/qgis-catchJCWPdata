@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/plugins/catchjcwp" >
+        <file>icon.png</file>
+    </qresource>
+</RCC>
