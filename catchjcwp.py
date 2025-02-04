@@ -192,9 +192,9 @@ class CatchmentJcwp:
             self.first_start = False
             self.dlg = CatchmentJcwpDialog()
 
-            QMessageBox.information(self.dlg, "Message", "Program do ściągania danych dla JCWP został uruchominy(run once)")
+            QMessageBox.information(self.dlg, "Message", "Lista JCWP zostanie utworzona pod warunkiem, że warstwa ze zlewnią jest aktywna. Jeśli tego nie zrobiłeś wyłącz program, aktywuj warstwę ze zlewnią i uruchom ponownie ")
 
-        QMessageBox.information(self.dlg, "Message", "Lista JCWP zostanie utworzona pod warunkiem, że warstwa ze zlewnią jest aktywna (run every time")
+        # QMessageBox.information(self.dlg, "Message", "xxx")
 
         # ****************** my code - start **********************************
 
@@ -222,6 +222,7 @@ class CatchmentJcwp:
         model.setStringList(ms_kod_list)
         self.dlg.listView.setModel(model)
         # ****************** my code - end **********************************
+
         # show the dialog
         self.dlg.show()
         # Run the dialog event loop
@@ -230,6 +231,8 @@ class CatchmentJcwp:
         if result:
             # Do something useful here - delete the line containing pass and
             # substitute with your code.
+
+            # ****************** my code - start **********************************
             # Pobranie plików PDF dla każdego kodu i zapis do podfolderu projektu
             project_path = QgsProject.instance().homePath()
             save_folder = os.path.join(project_path, 'karty charakterystyk')
@@ -244,9 +247,10 @@ class CatchmentJcwp:
                         file.write(response.content)
                 else:
                     self.iface.messageBar().pushMessage("Error", f"Failed to download PDF for {ms_kod}", level=3)
+            # ****************** my code - end **********************************
 
-            QMessageBox.information(self.dlg, "Message", "Dane zostaną ściągnięte do folderu projektu(run when OK)")
+            QMessageBox.information(self.dlg, "Message", "Dane zostały ściągnięte do folderu projektu")
 
         else:
-            QMessageBox.information(self.dlg, "Message", "Operacja została anulowana, pliki nie zostaną ściągnięte(run when Canceled)")
+            QMessageBox.information(self.dlg, "Message", "Operacja została anulowana, pliki nie zostaną ściągnięte")
 
