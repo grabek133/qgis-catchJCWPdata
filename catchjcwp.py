@@ -21,9 +21,12 @@
  *                                                                         *
  ***************************************************************************/
 """
-from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
+from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, QStringListModel
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QAction
+from qgis.PyQt.QtWidgets import QAction, QMessageBox
+from qgis.core import QgsProject, QgsVectorLayer
+import os
+import requests
 
 # Initialize Qt resources from file resources.py
 from .resources import *
@@ -189,6 +192,36 @@ class CatchmentJcwp:
             self.first_start = False
             self.dlg = CatchmentJcwpDialog()
 
+            QMessageBox.information(self.dlg, "Message", "Program do ściągania danych dla JCWP został uruchominy(run once)")
+
+        QMessageBox.information(self.dlg, "Message", "Lista JCWP zostanie utworzona pod warunkiem, że warstwa ze zlewnią jest aktywna (run every time")
+
+        # ****************** my code - start **********************************
+
+        # Pobranie aktywnej warstwy
+        layer = self.iface.activeLayer()
+        if not layer or not isinstance(layer, QgsVectorLayer):
+            self.iface.messageBar().pushMessage("Error", "No active vector layer selected", level=3)
+            return
+
+        # Pobranie wybranych obiektów
+        selected_features = layer.selectedFeatures()
+        if not selected_features:
+            self.iface.messageBar().pushMessage("Error", "No features selected", level=3)
+            return
+
+        # Pobranie wartości pola 'MS_KOD'
+        ms_kod_list = [feature["MS_KOD"] for feature in selected_features if "MS_KOD" in feature.fields().names()]
+
+        if not ms_kod_list:
+            self.iface.messageBar().pushMessage("Error", "Field 'MS_KOD' not found or no values available", level=3)
+            return
+
+        # Konwersja listy do modelu i przypisanie do listView
+        model = QStringListModel()
+        model.setStringList(ms_kod_list)
+        self.dlg.listView.setModel(model)
+        # ****************** my code - end **********************************
         # show the dialog
         self.dlg.show()
         # Run the dialog event loop
@@ -197,4 +230,23 @@ class CatchmentJcwp:
         if result:
             # Do something useful here - delete the line containing pass and
             # substitute with your code.
-            pass
+            # Pobranie plików PDF dla każdego kodu i zapis do podfolderu projektu
+            project_path = QgsProject.instance().homePath()
+            save_folder = os.path.join(project_path, 'karty charakterystyk')
+            os.makedirs(save_folder, exist_ok=True)
+
+            for ms_kod in ms_kod_list:
+                url = f'http://karty.apgw.gov.pl:4200/api/v1/jcw/pdf?code={ms_kod}'
+                response = requests.get(url)
+                if response.status_code == 200:
+                    file_path = os.path.join(save_folder, f'{ms_kod}.pdf')
+                    with open(file_path, 'wb') as file:
+                        file.write(response.content)
+                else:
+                    self.iface.messageBar().pushMessage("Error", f"Failed to download PDF for {ms_kod}", level=3)
+
+            QMessageBox.information(self.dlg, "Message", "Dane zostaną ściągnięte do folderu projektu(run when OK)")
+
+        else:
+            QMessageBox.information(self.dlg, "Message", "Operacja została anulowana, pliki nie zostaną ściągnięte(run when Canceled)")
+

@@ -1,5 +1,5 @@
-## Catchment JCWP data
-# Download data for the investment:
+# Catchment JCWP data
+## Download data for the investment:
 
 * Select the layer on which the investment is
 * Select the layer from which you want to download data
