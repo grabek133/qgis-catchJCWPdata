@@ -256,10 +256,10 @@ class CatchmentJcwp:
                     self.iface.messageBar().pushMessage("Error", f"Failed to download PDF for {ms_kod}", level=3)
 
             for kod_ue in kod_ue_list:
-                url = f'http://karty.apgw.gov.pl:4200/api/v1/jcw/pdf?code=GW{kod_ue}'
+                url = f'http://karty.apgw.gov.pl:4200/api/v1/jcw/pdf?code={kod_ue}'
                 response = requests.get(url)
                 if response.status_code == 200:
-                    file_path = os.path.join(save_folder, f'GW{kod_ue}.pdf')
+                    file_path = os.path.join(save_folder, f'{kod_ue}.pdf')
                     with open(file_path, 'wb') as file:
                         file.write(response.content)
                 else:
