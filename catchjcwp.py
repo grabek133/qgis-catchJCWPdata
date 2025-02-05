@@ -194,9 +194,9 @@ class CatchmentJcwp:
 
             QMessageBox.information(self.dlg, "Message", "Lista JCWP zostanie utworzona pod warunkiem, że warstwa ze zlewnią jest aktywna. Jeśli tego nie zrobiłeś wyłącz program, aktywuj warstwę ze zlewnią i uruchom ponownie ")
 
-        # QMessageBox.information(self.dlg, "Message", "xxx")
+        # QMessageBox.information(self.dlg, "Message", "xxx(run every time")
 
-        # ****************** my code - start **********************************
+        # ****************** my code - start (run every time) **********************************
 
         # Pobranie aktywnej warstwy
         layer = self.iface.activeLayer()
@@ -210,16 +210,23 @@ class CatchmentJcwp:
             self.iface.messageBar().pushMessage("Error", "No features selected", level=3)
             return
 
-        # Pobranie wartości pola 'MS_KOD'
-        ms_kod_list = [feature["MS_KOD"] for feature in selected_features if "MS_KOD" in feature.fields().names()]
+        # Pobranie wartości pola 'MS_KOD' lub 'Kod_UE'
+        ms_kod_list = []
+        kod_ue_list = []
 
-        if not ms_kod_list:
-            self.iface.messageBar().pushMessage("Error", "Field 'MS_KOD' not found or no values available", level=3)
+        for feature in selected_features:
+            if "MS_KOD" in feature.fields().names() and feature["MS_KOD"]:
+                ms_kod_list.append(feature["MS_KOD"])
+            elif "Kod_UE" in feature.fields().names() and feature["Kod_UE"]:
+                kod_ue_list.append(feature["Kod_UE"].replace("PL", ""))
+
+        if not ms_kod_list and not kod_ue_list:
+            self.iface.messageBar().pushMessage("Error", "No valid field 'MS_KOD' or 'Kod_UE' found", level=3)
             return
 
         # Konwersja listy do modelu i przypisanie do listView
         model = QStringListModel()
-        model.setStringList(ms_kod_list)
+        model.setStringList(ms_kod_list + kod_ue_list)
         self.dlg.listView.setModel(model)
         # ****************** my code - end **********************************
 
@@ -232,7 +239,7 @@ class CatchmentJcwp:
             # Do something useful here - delete the line containing pass and
             # substitute with your code.
 
-            # ****************** my code - start **********************************
+            # ****************** if 'ok' clicked -my code - start **********************************
             # Pobranie plików PDF dla każdego kodu i zapis do podfolderu projektu
             project_path = QgsProject.instance().homePath()
             save_folder = os.path.join(project_path, 'karty charakterystyk')
@@ -247,9 +254,19 @@ class CatchmentJcwp:
                         file.write(response.content)
                 else:
                     self.iface.messageBar().pushMessage("Error", f"Failed to download PDF for {ms_kod}", level=3)
+
+            for kod_ue in kod_ue_list:
+                url = f'http://karty.apgw.gov.pl:4200/api/v1/jcw/pdf?code=GW{kod_ue}'
+                response = requests.get(url)
+                if response.status_code == 200:
+                    file_path = os.path.join(save_folder, f'GW{kod_ue}.pdf')
+                    with open(file_path, 'wb') as file:
+                        file.write(response.content)
+                else:
+                    self.iface.messageBar().pushMessage("Error", f"Failed to download PDF for GW{kod_ue}", level=3)
             # ****************** my code - end **********************************
 
-            QMessageBox.information(self.dlg, "Message", "Dane zostały ściągnięte do folderu projektu")
+            QMessageBox.information(self.dlg, "Message", "Dane zostały ściągnięte do podfolderu projektu: 'karty charakterystyk'")
 
         else:
             QMessageBox.information(self.dlg, "Message", "Operacja została anulowana, pliki nie zostaną ściągnięte")
